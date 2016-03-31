@@ -30,7 +30,7 @@ set -x
 
 # Figure out where the Spark framework is installed
 SPARK_HOME="$(cd "`dirname "$0"`"; pwd)"
-DISTDIR="$SPARK_HOME/dist"
+DISTDIR="/dist"
 
 SPARK_TACHYON=false
 TACHYON_VERSION="0.8.2"
@@ -167,13 +167,13 @@ export MAVEN_OPTS="${MAVEN_OPTS:--Xmx2g -XX:MaxPermSize=512M -XX:ReservedCodeCac
 # Store the command as an array because $MVN variable might have spaces in it.
 # Normal quoting tricks don't work.
 # See: http://mywiki.wooledge.org/BashFAQ/050
-BUILD_COMMAND=("$MVN" clean package -DskipTests $@)
+#BUILD_COMMAND=("$MVN" clean package -DskipTests $@)
 
 # Actually build the jar
-echo -e "\nBuilding with..."
-echo -e "\$ ${BUILD_COMMAND[@]}\n"
+#echo -e "\nBuilding with..."
+#echo -e "\$ ${BUILD_COMMAND[@]}\n"
 
-"${BUILD_COMMAND[@]}"
+#"${BUILD_COMMAND[@]}"
 
 # Make directories
 rm -rf "$DISTDIR"
@@ -182,7 +182,7 @@ echo "Spark $VERSION$GITREVSTRING built for Hadoop $SPARK_HADOOP_VERSION" > "$DI
 echo "Build flags: $@" >> "$DISTDIR/RELEASE"
 
 # Copy jars
-cp "$SPARK_HOME"/assembly/target/scala*/*assembly*hadoop*.jar "$DISTDIR/lib/"
+cp "$SPARK_HOME"/assembly/target/scala*/*assembly*.jar "$DISTDIR/lib/" #*hadoop*.jar
 cp "$SPARK_HOME"/examples/target/scala*/spark-examples*.jar "$DISTDIR/lib/"
 # This will fail if the -Pyarn profile is not provided
 # In this case, silence the error and ignore the return code of this command
