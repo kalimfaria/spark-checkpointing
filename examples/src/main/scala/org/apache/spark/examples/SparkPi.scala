@@ -17,16 +17,27 @@
 
 // scalastyle:off println
 package org.apache.spark.examples
-
+import org.apache.spark.scheduler.{SparkListenerApplicationEnd, SparkListenerApplicationStart, SparkListener}
 import scala.math.random
-
 import org.apache.spark._
 
 /** Computes an approximation to pi */
 object SparkPi {
   def main(args: Array[String]) {
     val conf = new SparkConf().setAppName("Spark Pi")
+
     val spark = new SparkContext(conf)
+
+    spark.addSparkListener(new SparkListener()
+    {
+      override def onApplicationStart(applicationStart: SparkListenerApplicationStart) {
+        println("Spark ApplicationStart: " + applicationStart.appName);
+      }
+
+      override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd) {
+        println("Spark ApplicationEnd: " + applicationEnd.time);
+      }
+    });
     val slices = if (args.length > 0) args(0).toInt else 2
     val n = math.min(100000L * slices, Int.MaxValue).toInt // avoid overflow
     val count = spark.parallelize(1 until n, slices).map { i =>

@@ -18,10 +18,12 @@
 package org.apache.spark.examples;
 
 import org.apache.spark.SparkConf;
+import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
+import org.apache.spark.scheduler.SparkListener;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +36,8 @@ public final class JavaSparkPi {
 
   public static void main(String[] args) throws Exception {
     SparkConf sparkConf = new SparkConf().setAppName("JavaSparkPi");
+
+
     JavaSparkContext jsc = new JavaSparkContext(sparkConf);
 
     int slices = (args.length == 1) ? Integer.parseInt(args[0]) : 2;

@@ -18,10 +18,10 @@
 // scalastyle:off println
 package org.apache.spark.examples
 
-import scala.collection.JavaConversions._
-import org.apache.spark.SparkContext._
-import org.apache.spark.scheduler.{SparkListenerJobEnd, SparkListener, SparkListenerJobStart}
+import org.apache.spark.scheduler.{SparkListener, SparkListenerJobEnd, SparkListenerJobStart}
 import org.apache.spark.{SparkConf, SparkContext}
+
+import scala.collection.JavaConversions._
 
 /**
  * Computes the PageRank of URLs from an input file. Input file should
@@ -63,10 +63,10 @@ object SparkPageRank_Checkpointing {
         println("ADAPT: INSIDE Job Start Listener ");
         val props = propertiesAsScalaMap(jobStart.properties)
         if (props.contains("spark.rdd.scope")) {
-          val propsMap = // Convert props to propsMap
-            if (propsMap.contains("name") &&  propsMap("name") == "checkpoint") {
+
+            if (props.contains("name") &&  props("name") == "checkpoint") {
               println("JobID " + jobStart.jobId);
-              println("This is a checkpointing job for RDD - " + propsMap("id"))
+              println("This is a checkpointing job for RDD - " + props("id"))
               println("StartTime - " + jobStart.time)
             }
         }
@@ -85,6 +85,8 @@ object SparkPageRank_Checkpointing {
 
     val iters = if (args.length > 1) args(1).toInt else 10
     val ctx = new SparkContext(sparkConf)
+    ctx.setCheckpointDir("/checkpoint-dir")
+
     val lines = ctx.textFile(args(0), 1)
     val links = lines.map{ s =>
       val parts = s.split("\\s+")
@@ -98,6 +100,7 @@ object SparkPageRank_Checkpointing {
         urls.map(url => (url, rank / size))
       }
       ranks = contribs.reduceByKey(_ + _).mapValues(0.15 + 0.85 * _)
+      ranks.doCheckpoint()
     }
 
     val output = ranks.collect()
