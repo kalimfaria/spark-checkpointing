@@ -54,8 +54,9 @@ object SparkPageRank_Checkpointing {
     showWarning()
 
     val sparkConf = new SparkConf().setAppName("PageRank")
-    val sc = new SparkContext(sparkConf)
-    sc.addSparkListener(new SparkListener() {
+    val ctx = new SparkContext(sparkConf)
+    //val sc = new SparkContext(sparkConf)
+    ctx.addSparkListener(new SparkListener() {
 
 
       override def onJobStart(jobStart: SparkListenerJobStart) {
@@ -84,7 +85,7 @@ object SparkPageRank_Checkpointing {
     });
 
     val iters = if (args.length > 1) args(1).toInt else 10
-    val ctx = new SparkContext(sparkConf)
+
     ctx.setCheckpointDir("/checkpoint-dir")
 
     val lines = ctx.textFile(args(0), 1)
