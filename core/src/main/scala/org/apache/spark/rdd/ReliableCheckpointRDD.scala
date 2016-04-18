@@ -132,9 +132,11 @@ private[spark] object ReliableCheckpointRDD extends Logging {
     val broadcastedConf = sc.broadcast(
       new SerializableConfiguration(sc.hadoopConfiguration))
     // TODO: This is expensive because it computes the RDD again unnecessarily (SPARK-8582)
+    println("Just before running the writePartitionToCheckpointFile job")
     sc.runJob(originalRDD,
       writePartitionToCheckpointFile[T](checkpointDirPath.toString, broadcastedConf) _)
 
+    println("Just before running the writePartitionerToCheckpointDir job")
     if (originalRDD.partitioner.nonEmpty) {
       writePartitionerToCheckpointDir(sc, originalRDD.partitioner.get, checkpointDirPath)
     }
@@ -156,12 +158,15 @@ private[spark] object ReliableCheckpointRDD extends Logging {
       path: String,
       broadcastedConf: Broadcast[SerializableConfiguration],
       blockSize: Int = -1)(ctx: TaskContext, iterator: Iterator[T]) {
+    println("In the function writePartitionToCheckpointFile")
     val env = SparkEnv.get
     val outputDir = new Path(path)
     val fs = outputDir.getFileSystem(broadcastedConf.value.value)
-
+    println("Before getting parition ID")
     val finalOutputName = ReliableCheckpointRDD.checkpointFileName(ctx.partitionId())
+
     val finalOutputPath = new Path(outputDir, finalOutputName)
+    println("Checkpoint: " + finalOutputName + " finalOutputPath: " + finalOutputPath)
     val tempOutputPath =
       new Path(outputDir, s".$finalOutputName-attempt-${ctx.attemptNumber()}")
 
@@ -169,6 +174,7 @@ private[spark] object ReliableCheckpointRDD extends Logging {
       throw new IOException(s"Checkpoint failed: temporary path $tempOutputPath already exists")
     }
     val bufferSize = env.conf.getInt("spark.buffer.size", 65536)
+    println("Determined the buffer size.")
 
     val fileOutputStream = if (blockSize < 0) {
       fs.create(tempOutputPath, false, bufferSize)
@@ -176,14 +182,17 @@ private[spark] object ReliableCheckpointRDD extends Logging {
       // This is mainly for testing purpose
       fs.create(tempOutputPath, false, bufferSize, fs.getDefaultReplication, blockSize)
     }
+    println("Created the serializer")
     val serializer = env.serializer.newInstance()
     val serializeStream = serializer.serializeStream(fileOutputStream)
     Utils.tryWithSafeFinally {
       serializeStream.writeAll(iterator)
+      println("serializeStream.writeAll(iterator)")
     } {
       serializeStream.close()
+      println("serializeStream.close()")
     }
-
+    println("Wrote the file :)")
     if (!fs.rename(tempOutputPath, finalOutputPath)) {
       if (!fs.exists(finalOutputPath)) {
         logInfo(s"Deleting tempOutputPath $tempOutputPath")
@@ -206,17 +215,28 @@ private[spark] object ReliableCheckpointRDD extends Logging {
    */
   private def writePartitionerToCheckpointDir(
     sc: SparkContext, partitioner: Partitioner, checkpointDirPath: Path): Unit = {
+    println("In the writePartitionerToCheckpointDir function")
     try {
+      println("Before: partitionerFilePath")
       val partitionerFilePath = new Path(checkpointDirPath, checkpointPartitionerFileName)
+      println("partitionerFilePath: " + partitionerFilePath)
       val bufferSize = sc.conf.getInt("spark.buffer.size", 65536)
+      println("bufferSize: " + bufferSize)
       val fs = partitionerFilePath.getFileSystem(sc.hadoopConfiguration)
+
       val fileOutputStream = fs.create(partitionerFilePath, false, bufferSize)
+      println("Before the serializer")
       val serializer = SparkEnv.get.serializer.newInstance()
       val serializeStream = serializer.serializeStream(fileOutputStream)
+      println("Before writing the file")
       Utils.tryWithSafeFinally {
+
         serializeStream.writeObject(partitioner)
-      } {
+        println("After writing the file")
+      }
+      {
         serializeStream.close()
+        println("After closing the file")
       }
       logDebug(s"Written partitioner to $partitionerFilePath")
     } catch {

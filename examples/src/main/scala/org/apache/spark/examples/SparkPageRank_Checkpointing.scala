@@ -18,7 +18,7 @@
 // scalastyle:off println
 package org.apache.spark.examples
 
-import org.apache.spark.scheduler.{SparkListener, SparkListenerJobEnd, SparkListenerJobStart}
+import org.apache.spark.scheduler.{SparkListenerTaskStart, SparkListener, SparkListenerJobEnd, SparkListenerJobStart}
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.JavaConversions._
@@ -50,44 +50,44 @@ object SparkPageRank_Checkpointing {
       System.err.println("Usage: SparkPageRank <file> <iter>")
       System.exit(1)
     }
-
     showWarning()
-
     val sparkConf = new SparkConf().setAppName("PageRank")
     val ctx = new SparkContext(sparkConf)
     //val sc = new SparkContext(sparkConf)
     ctx.addSparkListener(new SparkListener() {
-
-
       override def onJobStart(jobStart: SparkListenerJobStart) {
         super.onJobStart(jobStart)
-        println("ADAPT: INSIDE Job Start Listener ");
+        println("Inside Job-Start Listener");
+        println("JobID: " + jobStart.jobId);
+        val p = jobStart.properties
+        println("Can't we just print the table: " + jobStart.properties)
+        println("Keeping it a hashtable");
+        for ((k,v) <- p) printf("key: %s, value: %s\n", k, v)
+        println("Making it a map");
         val props = propertiesAsScalaMap(jobStart.properties)
-        if (props.contains("spark.rdd.scope")) {
-
+        for ((k,v) <- props) printf("key: %s, value: %s\n", k, v)
+        println("Job-Start Listener start-time: " + jobStart.time);
+        println("End of Job-Start Listener");
+       /* if (props.contains("spark.rdd.scope")) {
             if (props.contains("name") &&  props("name") == "checkpoint") {
               println("JobID " + jobStart.jobId);
               println("This is a checkpointing job for RDD - " + props("id"))
               println("StartTime - " + jobStart.time)
             }
-        }
+        } */
       }
 
       override def onJobEnd(jobEnd: SparkListenerJobEnd) {
         super.onJobEnd(jobEnd)
-        
-        println("ADAPT: Inside Job end Listener ");
-        println("JobID " + jobEnd.jobId);
-        println("EndTime " + jobEnd.time);
+        println("Inside Job-End Listener ");
+        println("JobID: " + jobEnd.jobId);
+        println("End Time: " + jobEnd.time);
+        println("End of Job-End Listener ");
       }
 
-
     });
-
     val iters = if (args.length > 1) args(1).toInt else 10
-
-    ctx.setCheckpointDir("/checkpoint-dir")
-
+    ctx.setCheckpointDir("/proj/CS525/faria/spark-temp/spark-checkpointing/spark/checkpoint-dir")
     val lines = ctx.textFile(args(0), 1)
     val links = lines.map{ s =>
       val parts = s.split("\\s+")
@@ -99,14 +99,25 @@ object SparkPageRank_Checkpointing {
       val contribs = links.join(ranks).values.flatMap{ case (urls, rank) =>
         val size = urls.size
         urls.map(url => (url, rank / size))
+
       }
       ranks = contribs.reduceByKey(_ + _).mapValues(0.15 + 0.85 * _)
-      ranks.doCheckpoint()
+      println("Before the checkpoint \n")
+     // println("Count of ranks:  " +  ranks.count())
+      println("Iteration:  " +  i)
+    //  val output = ranks.collect()
+     // output.foreach(tup => println(tup._1 + " has rank: " + tup._2 + "."))
+
+      //ranks.persist()
+     // ranks.doCheckpoint()
+      ranks.cache()
+      ranks.checkpoint()
+      println("After the checkpoint \n")
+      println("Count of ranks:  " +  ranks.count())
+
     }
-
-    val output = ranks.collect()
-    output.foreach(tup => println(tup._1 + " has rank: " + tup._2 + "."))
-
+    val output1 = ranks.collect()
+    output1.foreach(tup => println(tup._1 + " has rank: " + tup._2 + "."))
     ctx.stop()
   }
 }

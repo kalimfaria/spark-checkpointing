@@ -98,7 +98,7 @@ trait RDDCheckpointTester { self: SparkFunSuite =>
 
     // Test whether serialized size of the RDD has reduced.
     logInfo("Size of " + rddType +
-      " [" + rddSizeBeforeCheckpoint + " --> " + rddSizeAfterCheckpoint + "]")
+      " [" + rddSizeBeforeCheckpoint + " --> " + rddSizeAfterCheckpoint + "]") // FARIA -- CAN WE USE THIS?
     assert(
       rddSizeAfterCheckpoint < rddSizeBeforeCheckpoint,
       "Size of " + rddType + " did not reduce after checkpointing " +

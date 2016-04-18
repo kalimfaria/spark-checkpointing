@@ -1676,12 +1676,15 @@ abstract class RDD[T: ClassTag](
    */
   private[spark] def doCheckpoint(): Unit = {
     RDDOperationScope.withScope(sc, "checkpoint", allowNesting = false, ignoreParent = true) {
+
+      print ("Trying to check point")
       if (!doCheckpointCalled) {
         doCheckpointCalled = true
         if (checkpointData.isDefined) {
           checkpointData.get.checkpoint()
         } else {
           dependencies.foreach(_.rdd.doCheckpoint())
+
         }
       }
     }
